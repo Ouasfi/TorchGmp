@@ -14,7 +14,7 @@ A pytorch  implementation of Secure Multilayer Perceptron Based on Homomorphic E
 Or, 
 
 - JIT-compile C++ and/or CUDA extensions by going into the `cpp/` or `cuda/` folder and calling `python jit.py`, which will JIT-compile the extension and load it,
-- Run `model_enc.py`. This model is unstable and may need some tuning of the hyper-parameters to converge.
+- Run `python model_enc.py`. This model is unstable and may need some tuning of the hyper-parameters to converge.
 
 # 0rganization
 This repo is organized in the following way:

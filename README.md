@@ -22,14 +22,15 @@ This repo is organized in the following way:
 - `cpp/`  is the main focus of this implementation. It contains the following files:
     - `encrypted_ops.py`: Implements the class of `EncryptedTensor`. It handles the operations over HE encrypted tensors using the `phe` module .
     - `integer_ops.py`: Implements the class of `IntegerTensor`. It handles the operations over torch.int64 tensors.
-    - `phe.py`: Implements the operations over HE encrypted tensors. The classes `P1` and `P2` correspond to the non-colluding semi-honest servers described in the paper. 
+    - `phe.py`: Implements the operations over HE encrypted tensors. The classes `P1` and `P2` correspond to the non-colluding semi-honest servers described in the paper. 
     - `model_int.py`: pytorch model for training over integers. 
     - `model_enc.py`: pytorch model for encrypted training. 
     - `model_th.py` : A baseline model. In constrast to the previous ones, here the gradients are accumulated by iterating over the samples of the batch resulting in a slower training. 
-    - `lltm.cpp`:  c++ implementation of the operationw over tensors. It's based on `gmp` for arbitrary precision arithmetic  and on `libhcs` for paillier HE. 
+    - `lltm.cpp`:  C++ implementation of the operations over tensors. It's based on `gmp` for arbitrary precision arithmetic  and on `libhcs` for paillier HE. 
 
 
 ## Authors
 
 [Amine Ouasfi](https://github.com/ouasfi)
-[Iheb Kotrsi ]
+
+[Iheb Kotorsi]

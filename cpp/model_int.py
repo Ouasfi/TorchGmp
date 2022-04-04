@@ -1,15 +1,14 @@
 import torch 
 import numpy as np
 from copy import deepcopy
-from encrypted_ops import EncryptedTensor
-import argparse
+from integer_ops import IntegerTensor
 
 def einsum_ij(a, b):
     batch = a.size(0)
     n_a = a.size(1)
     n_b = b.size(1)
     return (a.repeat(n_b, 1,1).permute(1,2,0).flatten() * b.repeat(n_a,1,1).permute(1,0,2).flatten()).reshape(batch, n_a,n_b)
-class EncryptedMLP(object):
+class IntegerMLP(object):
     def __init__(self, layers=[2, 10, 1], activations=['sigmoid', 'sigmoid'], t = 5):
         """The list ``layers`` contains the number of neurons in the
         respective layers of the network.  For example, if the list
@@ -27,10 +26,10 @@ class EncryptedMLP(object):
         self.biases = []
         for i in range(len(layers) - 1):
             self.weights.append(
-                EncryptedTensor(torch.randn( size=(layers[i + 1], layers[i]))*q_factor*np.sqrt(2 / layers[i])
+                IntegerTensor(torch.randn( size=(layers[i + 1], layers[i]))*q_factor*np.sqrt(2 / layers[i])
                 ,q_factor).long())
             self.biases.append(
-                EncryptedTensor(torch.randn( size=(layers[i + 1], 1))*q_factor* np.sqrt(2 / layers[i])
+                IntegerTensor(torch.randn( size=(layers[i + 1], 1))*q_factor* np.sqrt(2 / layers[i])
                 ,q_factor).long())
     def encrypt(self):
         self.weights = [w.encrypt() for w in self.weights]
@@ -76,7 +75,6 @@ class EncryptedMLP(object):
             mini_labels = [labels[k:k+batch_size] for k in range(0, training_data_size, batch_size)]
             
             for i, (mini_batch, mini_label) in enumerate(zip(mini_batches, mini_labels)):
-                print("minibatch {0} /{1}".format(i, len(mini_batches)))
                 self.update_mini_batch(mini_batch, mini_label, lr)
             
             if j%self.t==0:
@@ -138,7 +136,7 @@ class EncryptedMLP(object):
         elif name == 'relu':
             def relu(x):
                 y = x.clone()
-                y = y.relu(val = q_factor)
+                y = y.relu()
                 return y
             return relu
         else:
@@ -153,11 +151,11 @@ class EncryptedMLP(object):
         """
 
         if name == 'linear':
-            return lambda x: EncryptedTensor(torch.tensor([q_factor]), q_factor)
+            return lambda x: IntegerTensor(torch.tensor([q_factor]), q_factor)
         elif name == 'relu':
             def relu_diff(x):
                 y = x.clone()
-                y[y >= 0] = 1 # todo change to the right value/ accessmethod
+                y[y >= 0] = 1 
                 y[y < 0] = 0
                 return y
             return relu_diff
@@ -175,19 +173,14 @@ class EncryptedMLP(object):
         """
         print("Acc")        
         _, a_ = self.feedforward(X)
-        y_t = Y.decrypt()
-        y = a_[-1].decrypt()
-        acc = 1- (y_t.argmax(axis = 1)-y.argmax(axis = 1)).abs().float().mean()
+        acc = 1- (Y.argmax(axis = 1)-a_[-1].argmax(axis = 1)).abs().float().mean()
         print("accuracy == ", acc)
 
 
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--encrypted", help="Train with encrypted data",
-                    action="store_true")
-    args = parser.parse_args()
+ 
     db_size = 1000; q_factor = 2 ** 10
     X_1 = np.random.randint(2, size=db_size)
     X_2 = np.random.randint(2, size=db_size)
@@ -201,11 +194,10 @@ if __name__ == "__main__":
                                             for x_1, x_2 in zip(X_1, X_2)])
 
     # Define architecture of the MLP
-    nn = EncryptedMLP([2, 10, 2], activations=['relu', 'linear'], t = 1)
+    nn = IntegerMLP([2, 10, 2], activations=['relu', 'linear'], t = 1)
     #nn.encrypt()
-    print('Encrypt Data')
-    train_data = EncryptedTensor(torch.tensor(train_data).squeeze(-1).long(), q_factor).encrypt()
-    train_labels = EncryptedTensor(torch.tensor(train_labels).squeeze(-1).long(), q_factor).encrypt()
+    train_data = IntegerTensor(torch.tensor(train_data).squeeze(-1).long(), q_factor)
+    train_labels = IntegerTensor(torch.tensor(train_labels).squeeze(-1).long(), q_factor)
     nn.train(train_data, train_labels,
             epochs=20,
             batch_size=40, lr=50

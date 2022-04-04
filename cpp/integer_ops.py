@@ -6,7 +6,7 @@ import numpy as np
 
 
 import functools
-from configs import phe
+import torch as phe
 
 HANDLED_FUNCTIONS  ={}
 def encryted_tensor():
@@ -15,12 +15,12 @@ def encryted_tensor():
             # Invoke the wrapped function first
             retval = func(*args, **kwargs)
             # Now do something here with retval and/or action
-            assert not isinstance(args[0]._tensor , EncryptedTensor)
-            return EncryptedTensor(retval, args[0].q)
+            assert not isinstance(args[0]._tensor , IntegerTensor)
+            return IntegerTensor(retval, args[0].q)
         return wrapper_func
     return decorator_func
 
-class EncryptedTensor(object):
+class IntegerTensor(object):
     def __init__(self, tensor, q = 2**20):
         self.q = q
         self._tensor = tensor
@@ -34,7 +34,7 @@ class EncryptedTensor(object):
         if kwargs is None:
             kwargs = {}
         if func not in HANDLED_FUNCTIONS or not all(
-          issubclass(t, (torch.Tensor, EncryptedTensor))
+          issubclass(t, (torch.Tensor, IntegerTensor))
           for t in types
         ):
             return NotImplemented
@@ -47,16 +47,16 @@ class EncryptedTensor(object):
         return phe.sub(self._tensor, other._tensor)
     @encryted_tensor()
     def __mul__(self, other):
-        return phe.mul(self._tensor,other._tensor)#//self.q
+        return phe.mul(self._tensor,other._tensor)//self.q
     @encryted_tensor()
     def matmul(self, other):
-        return phe.matmul(self._tensor,other._tensor)#//self.q
+        return phe.matmul(self._tensor,other._tensor)//self.q
     @encryted_tensor()
     def __div__(self, other, *args, **kwargs):
         return phe.div(self._tensor, other._tensor, *args, **kwargs)
     @encryted_tensor()
     def __mm__(self, other):
-        return phe.mul(self._tensor, other._tensor)#//self.q
+        return phe.mul(self._tensor, other._tensor)//self.q
     @encryted_tensor()
     def __lt__(self, other):
         return self._tensor <other
@@ -104,7 +104,7 @@ class EncryptedTensor(object):
     @encryted_tensor()
     def __getitem__(self, i): return self._tensor[i]
     def __setitem__(self, i, val):
-        if isinstance(i, EncryptedTensor):
+        if isinstance(i, IntegerTensor):
             self._tensor[i._tensor] = val
         else:
             self._tensor[i] = val
@@ -120,4 +120,4 @@ def implements(torch_function):
     return decorator
 @implements(torch.div)
 def div(input, other, rounding_mode = 'floor'):
-    return EncryptedTensor(phe.div(input._tensor ,  other, rounding_mode = rounding_mode), input.q)
+    return IntegerTensor(phe.div(input._tensor ,  other, rounding_mode = rounding_mode), input.q)

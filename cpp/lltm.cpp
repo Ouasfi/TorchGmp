@@ -2,7 +2,7 @@
 #include <vector>
 #include <libhcs.h>
 #include <gmp.h>  
-
+// Keys 
 std::vector<std::vector<unsigned long int>> pcs_keys(int modsize=12) {
     pcs_public_key *pk = pcs_init_public_key();
     pcs_private_key *vk = pcs_init_private_key();
@@ -52,6 +52,7 @@ pcs_private_key*  private_key_set(std::vector<unsigned long int> private_key) {
   return vk;
 }
 
+//Encryption
 torch::Tensor encrypt(torch::Tensor z,std::vector<unsigned long int> public_key) {
     pcs_public_key *pk = public_key_set(public_key);
     //pcs_private_key *vk = pcs_init_private_key();
@@ -102,6 +103,8 @@ torch::Tensor decrypt(torch::Tensor z_cipher,std::vector<unsigned long int> priv
 
   return s;
 }
+
+// Utils
 void scale(mpz_t b , int q){
     mpz_t q_m;
     mpz_inits(q_m,NULL);
@@ -118,10 +121,17 @@ int gmp_sign(long int x)
     gmp_printf("a = %Zd", a);
     return mpz_sgn(a);
 }
+
+
+
+// Modular_op : op(a,b) mod(public_key->n2)
+//
 torch::Tensor modular_mul(torch::Tensor z_cipher,unsigned long int other, 
                           unsigned long int module ,
                           int q=1) {
-
+    /*
+    Takes E(Tensor), E(scalar) and computs E(Tensor + scalar)
+    */                       
     mpz_t a, b, o, mod;
     mpz_inits(a, b,o, mod,NULL);
     mpz_set_ui(o, other);
@@ -145,7 +155,9 @@ torch::Tensor modular_mul(torch::Tensor z_cipher,unsigned long int other,
 }
 unsigned long int modular_sum(torch::Tensor E_x,
                           std::vector<unsigned long int> public_key) {
-    
+    /*
+    Takes E(Tensor),  and return E(Tensor.sum())
+    */ 
     pcs_public_key *pk = public_key_set(public_key);                        
     mpz_t a, b;
     mpz_inits(a, b,NULL);
@@ -166,7 +178,9 @@ unsigned long int modular_sum(torch::Tensor E_x,
 }
 torch::Tensor modular_add(torch::Tensor E_x,torch::Tensor E_y, 
                           std::vector<unsigned long int> public_key) {
-    
+    /*
+    Takes E(X), E(Y) and computs E(X + Y)
+    */ 
     pcs_public_key *pk = public_key_set(public_key);                        
     mpz_t a, b, o;
     mpz_inits(a, b,o,NULL);
@@ -189,7 +203,9 @@ torch::Tensor modular_add(torch::Tensor E_x,torch::Tensor E_y,
 }
 torch::Tensor modular_sub(torch::Tensor E_x,torch::Tensor E_y, 
                           std::vector<unsigned long int> public_key) {
-    
+    /*
+    Takes E(X), E(Y) and computs E(X - Y)
+    */ 
     pcs_public_key *pk = public_key_set(public_key);                        
     mpz_t a, b, o, sig;
     mpz_inits(a, b,o,sig, NULL);
@@ -219,6 +235,9 @@ torch::Tensor mul_enc(torch::Tensor z_cipher,
                       std::vector<unsigned long int> public_key, 
                       std::vector<unsigned long int> private_key ,
                       int q = 1) {
+    /*
+    Takes E(X), E(Y) and computs E(X *Y ) mod pv->n2.
+    */ 
     pcs_private_key *vk = private_key_set( private_key);
     pcs_public_key *pk = public_key_set(public_key);
     hcs_random *hr = hcs_init_random();
@@ -252,6 +271,9 @@ torch::Tensor mul_dec(torch::Tensor z_cipher,
                       std::vector<unsigned long int> public_key, 
                       std::vector<unsigned long int> private_key ,
                       int q = 1) {
+    /*
+    Takes E(X), E(Y) and computs X *Y mod pv->n2.
+    */ 
     pcs_private_key *vk = private_key_set( private_key);
     pcs_public_key *pk = public_key_set(public_key);
     hcs_random *hr = hcs_init_random();
@@ -283,6 +305,9 @@ torch::Tensor mul_dec(torch::Tensor z_cipher,
 torch::Tensor mul_enc2(torch::Tensor z_cipher,torch::Tensor other, 
                       std::vector<unsigned long int> public_key, 
                       std::vector<unsigned long int> private_key ) {
+    /*
+    Takes E(X), E(Y) and computs E(X *Y ) mod pv->n2 using pcs_ep_mul
+    */ 
     pcs_private_key *vk = private_key_set( private_key);
     pcs_public_key *pk = public_key_set(public_key);
     hcs_random *hr = hcs_init_random();
@@ -310,6 +335,12 @@ torch::Tensor mul_enc2(torch::Tensor z_cipher,torch::Tensor other,
 }
 
 torch::Tensor div_enc(torch::Tensor z_cipher,torch::Tensor d_other, unsigned long int r, std::vector<unsigned long int> public_key) {
+    
+    /*
+    Takes E(c), d and r  and computs E(c)*E(-r/d)
+    */
+    
+    
     pcs_public_key *pk = public_key_set(public_key);
     hcs_random *hr = hcs_init_random();
 
@@ -343,6 +374,9 @@ torch::Tensor retrieve_mul(torch::Tensor z_cipher,
                           std::vector<unsigned long int> public_key,
                           unsigned long int r_a,
                           unsigned long int r_b ) {
+    /*
+    Takes E(A), E(B), E(M) and  r_a, r_b  and computs E(M)*E(A)^(-r_b)*E(B)^(-r_b)*E(-r_a*r_b)
+    */
     pcs_public_key *pk = public_key_set(public_key);
     hcs_random *hr = hcs_init_random();
     mpz_t z_m, o_m, mul_m, b, r_a_m, r_b_m, pow_z, pow_o,r;
@@ -389,6 +423,10 @@ torch::Tensor retrieve_mul(torch::Tensor z_cipher,
 torch::Tensor modular_pow(torch::Tensor E_x, 
                           std::vector<unsigned long int> public_key,
                           long int r_a ) {
+    /*
+    Takes E(x),  r  and computs E(c*r) =E(c)^r.
+    */
+    
     pcs_public_key *pk = public_key_set(public_key);
     hcs_random *hr = hcs_init_random();
     mpz_t x_m, b, r_a_m, pow_x;
@@ -573,6 +611,10 @@ torch::Tensor dummy_matmul(torch::Tensor E_x ,
                           std::vector<unsigned long int> public_key, 
                           std::vector<unsigned long int> private_key,
                           int q = 1) {
+  /*
+    Takes E(x), E(y)  and computs E(x@y)
+    */
+  
   auto type = E_x.dtype();
   int x_n = E_x.size(0);
   int x_m = E_x.size(1);
@@ -624,6 +666,9 @@ torch::Tensor retrieve_matmul(torch::Tensor E_x,
                           std::vector<unsigned long int> public_key,
                           unsigned long int r_a,
                           unsigned long int r_b ) {
+  /*
+    Takes E(A.sum(0)), E(B.sum(1)), E(M) and  r_a, r_b  and computs E(M)*E(A.sum(0))^(-r_b)*E(B.sum(1))^(-r_b)*E(-r_a*r_b)
+    */
   auto type = E_x.dtype();
   int x_n = E_xy.size(0);
   int x_m = E_xy.size(1);

@@ -2,14 +2,38 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
-
 #include <vector>
 
+// #include <libhcs.h>
+// #include <gmp.h>  
 namespace {
 template <typename scalar_t>
 __device__ __forceinline__ scalar_t sigmoid(scalar_t z) {
   return 1.0 / (1.0 + exp(-z));
 }
+
+// template <typename scalar_t>
+// __device__ __forceinline__ scalar_t  encrypt(scalar_t a)
+// {
+//         // initialize data structures
+//     pcs_public_key *pk = pcs_init_public_key();
+//     pcs_private_key *vk = pcs_init_private_key();
+//     hcs_random *hr = hcs_init_random();
+
+//     // Generate a key pair with modulus of size 2048 bits
+//     pcs_generate_key_pair(pk, vk, hr, 2048);
+
+//     // libhcs works directly with gmp mpz_t types, so initialize some
+//     mpz_t c, b;
+//     mpz_inits(a, b,  NULL);
+
+//     mpz_set_ui(c, a);
+//     mpz_inits( b,  NULL);
+
+//     pcs_encrypt(pk, hr, c, b);  // Encrypt a (= 50) and store back into a
+//     int r = mpz_get_ui ( c);
+//     return r;
+// }
 
 template <typename scalar_t>
 __device__ __forceinline__ scalar_t d_sigmoid(scalar_t z) {

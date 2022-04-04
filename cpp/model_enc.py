@@ -28,10 +28,10 @@ class EncryptedMLP(object):
         for i in range(len(layers) - 1):
             self.weights.append(
                 EncryptedTensor(torch.randn( size=(layers[i + 1], layers[i]))*q_factor*np.sqrt(2 / layers[i])
-                ,q_factor).long())
+                ,q_factor).to(torch.int64))
             self.biases.append(
                 EncryptedTensor(torch.randn( size=(layers[i + 1], 1))*q_factor* np.sqrt(2 / layers[i])
-                ,q_factor).long())
+                ,q_factor).to(torch.int64))
     def encrypt(self):
         self.weights = [w.encrypt() for w in self.weights]
         self.biases = [w.encrypt() for w in self.biases]
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     train_data = EncryptedTensor(torch.tensor(train_data).squeeze(-1).long(), q_factor).encrypt()
     train_labels = EncryptedTensor(torch.tensor(train_labels).squeeze(-1).long(), q_factor).encrypt()
     nn.train(train_data, train_labels,
-            epochs=20,
+            epochs=200,
             batch_size=40, lr=50
             
     )

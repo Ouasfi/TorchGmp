@@ -110,6 +110,8 @@ class EncryptedTensor(object):
             self._tensor[i] = val
     @encryted_tensor()
     def t(self): return self._tensor.T
+    @encryted_tensor()
+    def to(self, *args): return self._tensor.to(*args)
 
 def implements(torch_function):
     """Register a torch function override for ScalarTensor"""
